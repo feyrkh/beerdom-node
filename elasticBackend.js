@@ -14,7 +14,9 @@ var ElasticBackend = function(elasticHost) {
   this.hostName = elasticHost;
   this.client = new elasticsearch.Client({
     host: this.hostName,
-    log: 'trace'
+    log: 'trace',
+    port: 443,
+    protocol: 'https'
   });
 };
 
@@ -36,13 +38,24 @@ ElasticBackend.prototype.indexBeers = function(firebaseUrl, firebaseAuthToken, s
   return getJson(url)
   .then(function(beerJson) {
     console.log("Retrieved beers from firebase, found "+Object.keys(beerJson).length+" beers");
+    var bulkIndex = [];
     for (var property in beerJson) {
       if (beerJson.hasOwnProperty(property)) {
+        bulkIndex.push({index: {_index: 'beers', _type: 'beer', _id: property}});
+        bulkIndex.push(beerJson[property]);
         //console.log("Indexing beer with id="+property+", json="+JSON.stringify(beerJson[property]));
-        self.indexBeer(property, beerJson[property]);
+        //self.indexBeer(property, beerJson[property]);
         //console.log("Finished indexing beer with id="+property);
       }
     }
+    self.client.bulk({body: bulkIndex}, function(err, resp) {
+      if(err) {
+        console.log("Failed to bulk index beers: "+err);
+        errorCallback(err);
+      }
+      else successCallback(resp);
+      
+    })
     successCallback(beerJson);
   })
   .catch(errorCallback);
@@ -56,7 +69,7 @@ ElasticBackend.prototype.indexBeer = function(id, json) {
     id: id,
     body: json
   }, function(error, response) {
-    if(error) console.log(`error indexing beer id=${id}, json=${json}`);
+    if(error) console.log(`error indexing beer id=${id}, json=`+JSON.stringify(json)+', error='+error);
     else console.log(response);
   })
 };
