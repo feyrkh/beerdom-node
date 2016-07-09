@@ -22,7 +22,6 @@ var ElasticBackend = function(elasticHost) {
 
 ElasticBackend.prototype.status = function() {
   return this.client.ping({
-    // ping usually has a 3000ms timeout 
     requestTimeout: 3000
   });
 };
@@ -43,9 +42,6 @@ ElasticBackend.prototype.indexBeers = function(firebaseUrl, firebaseAuthToken, s
       if (beerJson.hasOwnProperty(property)) {
         bulkIndex.push({index: {_index: 'beers', _type: 'beer', _id: property}});
         bulkIndex.push(beerJson[property]);
-        //console.log("Indexing beer with id="+property+", json="+JSON.stringify(beerJson[property]));
-        //self.indexBeer(property, beerJson[property]);
-        //console.log("Finished indexing beer with id="+property);
       }
     }
     self.client.bulk({body: bulkIndex}, function(err, resp) {
@@ -59,19 +55,6 @@ ElasticBackend.prototype.indexBeers = function(firebaseUrl, firebaseAuthToken, s
     successCallback(beerJson);
   })
   .catch(errorCallback);
-};
-
-ElasticBackend.prototype.indexBeer = function(id, json) {
-  console.log("indexBeer("+id+")");
-  this.client.index({
-    index: 'beers',
-    type: 'beer',
-    id: id,
-    body: json
-  }, function(error, response) {
-    if(error) console.log(`error indexing beer id=${id}, json=`+JSON.stringify(json)+', error='+error);
-    else console.log(response);
-  })
 };
 
 module.exports = ElasticBackend;
